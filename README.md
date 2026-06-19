@@ -4,6 +4,16 @@ Este repositorio es una solución **monolítica e independiente (Monorepo)** que
 
 ---
 
+## 📸 Vista Previa (Screenshots)
+
+### Vista General (Panel de Control)
+![Dashboard Vista General](./screenshots/dashboard_empty.png)
+
+### Conversación y Menú de Asistencia Activo
+![Conversación Activa](./screenshots/dashboard_chatting.png)
+
+---
+
 ## 📂 Estructura del Proyecto
 
 * **`/` (Raíz):** Contiene el código frontend construido en **React + Vite**.
