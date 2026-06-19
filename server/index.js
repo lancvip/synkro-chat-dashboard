@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { saveMessage } = require('./chat');
 const { createClient } = require('@supabase/supabase-js');
+const path = require('path');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const app = express();
@@ -10,6 +11,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Servir archivos estáticos del frontend compilado en producción
+app.use(express.static(path.join(__dirname, '../dist')));
+
 
 const PORT = process.env.PORT || 3000;
 
@@ -245,6 +250,10 @@ async function _enviarMeta(phoneNumber, payloadExtra, bodyParaLog) {
         metadata: { message_id: wamid }
     });
 }
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
 
 app.listen(PORT, () => {
     console.log(`🚀 Servidor backend de WhatsApp corriendo en el puerto ${PORT}`);
