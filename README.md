@@ -126,8 +126,3 @@ alter publish supabase_realtime add table public.chat_messages;
 ```
 
 ---
-
-## 📄 Licencia
-Este proyecto es de código abierto y está disponible bajo la licencia [MIT](LICENSE).
-
-Desarrollado y mantenido por **[Lancvip](https://lancvip.online)**.
