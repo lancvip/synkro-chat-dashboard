@@ -1,148 +1,129 @@
-# Synkro Chat Dashboard 💬
+# Monorepo Chat Dashboard & WhatsApp Webhook 💬
 
-Este es un panel de administración y chat en tiempo real al estilo **WhatsApp Web**, diseñado para gestionar interacciones y flujos a través de la **API Cloud de WhatsApp (Meta)** de forma visual e intuitiva.
-
-El proyecto está diseñado de forma **independiente** para conectar cualquier frontend de mensajería con un backend de integración y base de datos sobre **Supabase**.
+Este repositorio es una solución **monolítica e independiente (Monorepo)** que contiene tanto la interfaz de usuario (React Frontend) como el servidor webhook (Node.js Backend) para gestionar interacciones y campañas a través de la **API Cloud de WhatsApp (Meta)**.
 
 ---
 
-## 🚀 Arquitectura Independiente
+## 📂 Estructura del Proyecto
 
-Este dashboard interactúa con dos componentes principales:
-1. **Supabase (Base de datos y tiempo real):** Lee y recibe las actualizaciones en vivo de los mensajes entrantes y salientes.
-2. **Servidor Backend (Meta API):** Envía las peticiones REST al backend que gestiona la API Cloud de WhatsApp (Meta) para procesar el envío de mensajes de texto y plantillas oficiales.
-
----
-
-## 🛠️ Stack Tecnológico
-
-* **Frontend:** React 19, Vite, Framer Motion, Lucide React, Luxon.
-* **Backend Recomendado:** Servidor Node.js/Express integrado con la API Cloud de WhatsApp y el SDK de Supabase Admin.
+* **`/` (Raíz):** Contiene el código frontend construido en **React + Vite**.
+* **`/server`:** Contiene el servidor backend construido en **Node.js + Express** para procesar los mensajes y webhooks de Meta.
 
 ---
 
-## ⚙️ Configuración del Proyecto
+## 🚀 Arquitectura del Sistema
 
-### 1. Clonar el repositorio
+```
+     ┌──────────────────────────────────────────────────────────┐
+     │                      META CLOUD API                      │
+     └─────────────┬──────────────────────────────▲─────────────┘
+      Webhooks de  │                              │  Peticiones HTTP
+       Mensajes    │                              │   (Graph API)
+                   ▼                              │
+     ┌──────────────────────────┐    API REST    ┌┴─────────────────────────┐
+     │      SERVER BACKEND      ├───────────────►│    SUPABASE DATABASE     │
+     │     (Node.js/Express)    │                │  Historial y Realtime    │
+     └──────────────────────────┘                └──────────────┬───────────┘
+                                                                │  Updates
+                                                                │  Realtime
+                                                                ▼
+                                                 ┌─────────────────────────┐
+                                                 │      CHAT DASHBOARD     │
+                                                 │      (React/Vite)       │
+                                                 └─────────────────────────┘
+```
+
+---
+
+## ⚙️ Configuración y Variables de Entorno
+
+### 1. Clonar el repositorio e instalar dependencias
 ```bash
 git clone https://github.com/lancvip/synkro-chat-dashboard.git
 cd synkro-chat-dashboard
-```
 
-### 2. Instalar dependencias
-```bash
+# Instalar dependencias del Frontend (Raíz)
+npm install
+
+# Instalar dependencias del Backend (Server)
+cd server
 npm install
 ```
 
-### 3. Configurar Variables de Entorno
-Crea un archivo `.env` en la raíz del proyecto basándote en el archivo `.env.example`:
-```bash
-cp .env.example .env
-```
+### 2. Configurar Variables de Entorno (`.env`)
+Debes crear un archivo `.env` en cada sección del proyecto:
 
-Edita el archivo `.env` con tus credenciales de desarrollo/producción:
+#### A. Frontend (`/.env`)
+Crea el archivo en la raíz y configura tus accesos de Supabase y el URL de tu servidor backend:
 ```env
-# URL y clave anónima pública de tu proyecto en Supabase
 VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
 VITE_SUPABASE_KEY=tu-anon-key-de-supabase
-
-# URL del servidor backend que expone los endpoints de envío de Meta
-VITE_BACKEND_URL=https://tu-servidor-backend.com
+VITE_BACKEND_URL=http://localhost:3000
 ```
 
-### 4. Inicializar en modo desarrollo
-```bash
-npm run dev
+#### B. Backend (`/server/.env`)
+Crea el archivo dentro de la carpeta `/server` y agrega las credenciales secretas de Supabase y Meta:
+```env
+PORT=3000
+SUPABASE_URL=https://tu-proyecto.supabase.co
+SUPABASE_KEY=tu-service-role-key-de-supabase -- Requerido para omitir políticas RLS si es necesario
+
+# Configuración de WhatsApp API Cloud (Meta)
+WHATSAPP_TOKEN=tu-token-permanente-de-desarrollador-de-facebook
+WHATSAPP_PHONE_NUMBER_ID=tu-id-de-telefono-de-whatsapp
+WHATSAPP_VERIFY_TOKEN=token_secreto_elegido_por_ti
 ```
 
 ---
 
-## 📂 Configuración en Supabase (Tablas y Realtime)
+## 🔌 Configuración del Webhook en Facebook Developers
 
-Para que el chat cargue y actualice las conversaciones en tiempo real, debes crear las siguientes tablas en tu base de datos de Supabase. Puedes ejecutar este código SQL directamente en el **SQL Editor** de Supabase:
+Para conectar tu número de WhatsApp con esta aplicación, debes dar de alta tu Webhook en el portal de desarrolladores de Facebook:
 
-### 1. Tabla de Mensajes de Chat (`chat_messages`)
-Esta tabla almacena todo el historial de conversaciones de WhatsApp:
+1. Ve a tu aplicación en **[Facebook Developers](https://developers.facebook.com/)**.
+2. Añade o configura el producto **WhatsApp** y dirígete a **Configuración > API Setup**.
+3. En la sección de **Webhooks**, haz clic en **Editar**:
+   * **URL de devolución de llamada (Callback URL):** `https://tu-dominio-publico.com/webhook/meta` *(En desarrollo local, puedes usar herramientas como Ngrok para exponer tu puerto 3000, ej: `https://xxxx.ngrok-free.app/webhook/meta`)*.
+   * **Token de verificación:** Escribe el mismo valor que pusiste en la variable `WHATSAPP_VERIFY_TOKEN` en tu archivo `/server/.env`.
+4. Haz clic en **Verificar y guardar**.
+5. En la misma pantalla de Webhooks, busca la tabla de campos y haz clic en **Suscribirse** a los eventos:
+   * **`messages`** (Obligatorio para recibir mensajes y ubicaciones).
+   * **`message_template_status`** (Opcional, para monitorear estados de plantillas).
+
+---
+
+## 📂 Esquema de Base de Datos en Supabase (Migración SQL)
+
+Ejecuta el siguiente código en el **SQL Editor** de tu consola de Supabase para inicializar la tabla de mensajes y activar el flujo de actualización en tiempo real:
 
 ```sql
+-- 1. Tabla de Mensajes
 create table public.chat_messages (
   id uuid primary key default gen_random_uuid(),
-  phone_number text not null,                      -- Número con código de país (ej: 51904332333)
-  body text,                                       -- Contenido del mensaje de texto
-  is_from_user boolean default false,              -- true = entrante, false = saliente
-  status text check (status in ('sent', 'delivered', 'read', 'failed')), -- Estado del mensaje
-  push_name text,                                  -- Nombre de perfil de WhatsApp del contacto
-  type text default 'text',                        -- Tipo de mensaje ('text', 'location', 'template', etc.)
-  metadata jsonb,                                  -- Datos extra (ej: { "lat": -12.04, "lng": -77.03 } para ubicación)
+  phone_number text not null,
+  body text,
+  is_from_user boolean default false,
+  status text check (status in ('sent', 'delivered', 'read', 'failed')),
+  push_name text,
+  type text default 'text',
+  metadata jsonb,
+  message_id text unique, -- Identificador único (wamid) de Meta
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Habilitar réplicas Realtime para actualizaciones en vivo en la UI
-alter table public.chat_messages replica identity full;
-alter publish supabase_realtime add table public.chat_messages;
-```
-
-### 2. Tabla Opcional de Perfiles (`profiles`)
-Si deseas que el panel cruce los números telefónicos con nombres reales de empleados/contactos en tu base de datos:
-
-```sql
+-- 2. Tabla Opcional de Perfiles/Contactos (para vincular números a nombres en el chat)
 create table public.profiles (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
-  phone_number text unique,                        -- Número de teléfono único
+  phone_number text unique,
   role text default 'usuario',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- 3. Habilitar tiempo real (Supabase Realtime) en la tabla de mensajes
+alter table public.chat_messages replica identity full;
+alter publish supabase_realtime add table public.chat_messages;
 ```
-
----
-
-## 🔌 Requisitos del Servidor Backend
-
-El frontend realiza peticiones HTTP `POST` y `GET` al `VITE_BACKEND_URL` configurado. Tu servidor backend debe exponer y controlar los siguientes endpoints:
-
-### 1. `POST /webhook/meta-reply`
-Envía un mensaje de texto plano a través de la API Cloud de WhatsApp.
-* **Cuerpo (JSON):**
-  ```json
-  {
-    "phone": "51904332333",
-    "text": "Hola, ¿cómo estás?"
-  }
-  ```
-
-### 2. `POST /webhook/meta-template`
-Envía una plantilla pre-aprobada por Meta.
-* **Cuerpo (JSON):**
-  ```json
-  {
-    "phone": "51904332333",
-    "templateName": "invitacion_empleado",
-    "employeeName": "Richard"
-  }
-  ```
-
-### 3. `POST /webhook/meta-bulk-template`
-Inicia un hilo de envíos masivos para una lista de destinatarios.
-* **Cuerpo (JSON):**
-  ```json
-  {
-    "employees": [
-      { "phone": "51904332333", "name": "Richard" },
-      { "phone": "51988888888", "name": "Carlos" }
-    ],
-    "templateName": "invitacion_empleado"
-  }
-  ```
-
-### 4. `GET /webhook/employees-list`
-Retorna un listado de empleados para el selector masivo.
-* **Respuesta (JSON):**
-  ```json
-  [
-    { "phone_number": "+51904332333", "full_name": "Richard" }
-  ]
-  ```
 
 ---
 
