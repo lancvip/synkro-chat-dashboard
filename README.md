@@ -122,7 +122,7 @@ create table public.profiles (
 
 -- 3. Habilitar tiempo real (Supabase Realtime) en la tabla de mensajes
 alter table public.chat_messages replica identity full;
-alter publish supabase_realtime add table public.chat_messages;
+alter publication supabase_realtime add table public.chat_messages;
 ```
 
 ---
